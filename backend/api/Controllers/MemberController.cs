@@ -44,7 +44,11 @@ public class MemberController(IMemberRepository memberRepository) : BaseApiContr
             memberDtos.Add(memberDto);
         }
 
-        return memberDtos;
+        return opResult.IsSuccess == true
+               ? opResult.Result
+                   : opResult.Error?.Code == ErrorCode.IsWrongCreds
+               ? BadRequest(opResult.Error.Message)
+               : BadRequest("Operation failed! Try again or contact support.");
     }
 
     [HttpGet("get-by-username/{userName}")]
@@ -55,6 +59,10 @@ public class MemberController(IMemberRepository memberRepository) : BaseApiContr
         if (memberDto is null)
             return BadRequest("User not found");
 
-        return memberDto;
+        return opResult.IsSuccess == true
+               ? opResult.Result
+                   : opResult.Error?.Code == ErrorCode.IsWrongCreds
+               ? BadRequest(opResult.Error.Message)
+               : BadRequest("Operation failed! Try again or contact support.");
     }
 }

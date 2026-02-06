@@ -23,8 +23,11 @@ public class AdminController(IAdminRepository _adminRepository) : BaseApiControl
 
         DeleteResult? deleteResult = await _adminRepository.DeleteUserAsync(targetUserName, cancellationToken);
 
-        return deleteResult is null
-            ? BadRequest("Delete user failed try again")
-            : Ok(new Response(Message: "User deleted successfully"));
+         return opResult.IsSuccess == true
+        ? opResult.Result
+            : opResult.Error?.Code == ErrorCode.IsNotFound
+        ? BadRequest(opResult.Error.Message)
+        : BadRequest("Operation failed! Try again or contact support.");
+ 
     }
 }

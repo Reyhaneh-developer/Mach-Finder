@@ -40,12 +40,27 @@ public class AdminRepository : IAdminRepository
         return userWithRoleDtos;
     }
 
-    public async Task<DeleteResult?> DeleteUserAsync(string targetUserName, CancellationToken cancellationToken)
+    public async Task<OperationResult<DeleteResult>> DeleteUserAsync(string targetUserName, CancellationToken cancellationToken)
     {
         AppUser appUser = await _collection.Find(user => user.NormalizedUserName == targetUserName.ToUpper()).FirstOrDefaultAsync();
 
-        if (appUser is null) return null;
+        if (appUser is null)
+        {
+            return new OperationResult<DeleteResult>(
+                   IsSuccess: false,
+                   Error: new CustomError(
+                       ErrorCode.IsNotFound,
+                       ""
+                   )
+               );
+        }
 
-        return await _collection.DeleteOneAsync(doc => doc.Id == appUser.Id, cancellationToken); 
+        DeleteResult deleteResult = await _collection.DeleteOneAsync(doc => doc.Id == appUser.Id, cancellationToken);
+       
+        return new OperationResult<DeleteResult>(
+            IsSuccess:true,
+            result:deleteResult,
+            null
+        );
     }
 }

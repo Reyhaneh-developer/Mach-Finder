@@ -2,6 +2,6 @@ namespace api.Interfaces;
 
 public interface IAdminRepository
 {
-    public Task<IEnumerable<UserWithRoleDto>> GetUsersWithRolesAsync();
-    public Task<DeleteResult?> DeleteUserAsync(string targetUserName, CancellationToken cancellationToken);
+    public Task<OperationResult<IEnumerable<UserWithRoleDto>>> GetUsersWithRolesAsync();
+    public Task<OperationResult<DeleteResult>> DeleteUserAsync(string targetUserName, CancellationToken cancellationToken);
 }

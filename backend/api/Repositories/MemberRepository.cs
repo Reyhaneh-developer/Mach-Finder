@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using api.Helpers;
 
 namespace api.Repositories;
@@ -24,19 +25,29 @@ public class MemberRepository : IMemberRepository
         return appUsers;
     }
 
-    public async Task<MemberDto?> GetByUserNameAsync(string userName, CancellationToken cancellationToken)
+    public async Task<OperationResult<MemberDto>> GetByUserNameAsync(string userName, CancellationToken cancellationToken)
     {
         AppUser? appUser = await _collection.Find
             (doc => doc.UserName == userName).FirstOrDefaultAsync(cancellationToken);
 
         if (appUser is null)
-            return null;
+            return new OperationResult<MemberDto>(
+                IsSuccess: false,
+              Error: new CustomError(
+                ErrorCode.IsWrongCreds,
+                ""
+            )
+            );
 
         MemberDto memberDto = Mappers.ConvertAppUserToMemberDto(appUser);
 
         // MemberDto memberDto = Mappers.ConvertAppUserToMemberDto(appUser);
 
-        return memberDto;
+        return new OperationResult<MemberDto>(
+                    IsSuccess: true,
+                    Result: memberDto,
+                    null
+                );
     }
 
     private IQueryable<AppUser> CreateQuery(MemberParams memberParams)

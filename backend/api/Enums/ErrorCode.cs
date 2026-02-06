@@ -6,5 +6,10 @@ public enum ErrorCode
     NetIdentityFailed,
     NetIdentityRoleFailed,
     IsNotFound,
-    IsTokenFailed
+    IsTokenFailed,
+    UpdateFailed,
+    UrlsAreNull,
+    InvalidUrl,
+    InvalidOperation,
+    FileSystemError
 }

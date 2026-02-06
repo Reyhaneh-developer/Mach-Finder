@@ -4,7 +4,7 @@ namespace api.Interfaces;
 
 public interface IMemberRepository
 {
-    public Task<PagedList<AppUser>> GetAllAsync(MemberParams memberParams, CancellationToken cancellationToken);
+    public Task<OperationResult<PagedList<AppUser>>> GetAllAsync(MemberParams memberParams, CancellationToken cancellationToken);
 
-    public Task<MemberDto?> GetByUserNameAsync(string userName, CancellationToken cancellationToken);
+    public Task<OperationResult<MemberDto>> GetByUserNameAsync(string userName, CancellationToken cancellationToken);
 }

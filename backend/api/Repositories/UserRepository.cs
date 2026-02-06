@@ -1,5 +1,3 @@
-using MongoDB.Driver.Linq;
-
 namespace api.Repositories;
 
 public class UserRepository : IUserRepository
@@ -20,14 +18,25 @@ public class UserRepository : IUserRepository
         _logger = logger;
     }
 
-    public async Task<AppUser?> GetByIdAsync(string userId, CancellationToken cancellationToken)
+    public async Task<OperationResult<AppUser>> GetByIdAsync(string userId, CancellationToken cancellationToken)
     {
         AppUser? appUser = await _collection.Find(doc => doc.Id.ToString() == userId).SingleOrDefaultAsync(cancellationToken);
 
         if (appUser is null)
-            return null;
+            return new OperationResult<DeleteResult>(
+                         IsSuccess: false,
+                         Error: new CustomError(
+                           ErrorCode.IsNotFound,
+                           ""
+                         )
 
-        return appUser;
+                        );
+
+        return new OperationResult<AppUser>(
+                   IsSuccess: true,
+                   Result: appUser,
+                   null
+               );
     }
 
     public async Task<UpdateResult> UpdateByIdAsync(string userId, UserUpdateDto userInput, CancellationToken cancellationToken)
@@ -43,17 +52,32 @@ public class UserRepository : IUserRepository
             => user.Id.ToString() == userId, updateDef, null, cancellationToken);
     }
 
-    public async Task<Photo?> UploadPhotoAsync(IFormFile file, string userId, CancellationToken cancellationToken)
+    public async Task<OperationResult<Photo>> UploadPhotoAsync(IFormFile file, string userId, CancellationToken cancellationToken)
     {
         AppUser? appUser = await GetByIdAsync(userId, cancellationToken);
 
+
         if (appUser is null)
-            return null;
+            return new OperationResult<Photo>(
+                         IsSuccess: false,
+                         Error: new CustomError(
+                           ErrorCode.IsNotFound,
+                           ""
+                         )
+
+                        );
 
         // ObjectId objectId = ObjectId.Parse(userId);
 
         if (!ObjectId.TryParse(userId, out var objectId))
-            return null;
+            return new OperationResult<Photo>(
+              IsSuccess: false,
+              Error: new CustomError(
+                ErrorCode.IsTokenFailed,
+                ""
+              )
+
+             );
 
         string[]? imageUrls = await _photoService.AddPhotoToDiskAsync(file, objectId);
 
@@ -72,10 +96,33 @@ public class UserRepository : IUserRepository
 
             UpdateResult result = await _collection.UpdateOneAsync(doc => doc.Id.ToString() == userId, updatedUser, null, cancellationToken);
 
-            return result.ModifiedCount == 1 ? photo : null;
+            // return result.ModifiedCount == 1 ? photo : null;
+
+            if (result.ModifiedCount == 1)
+            {
+                return new OperationResult<Photo>(
+                    true,
+                    photo,
+                    null
+                );
+            }
+
+            return new OperationResult<Photo>(
+                false,
+                Error: new CustomError(
+                    ErrorCode.UpdateFailed,
+                    "Photo upload failed try again."
+                )
+            );
         }
 
-        return null;
+        return new OperationResult<Photo>(
+            false,
+            Error: new CustomError(
+                ErrorCode.UrlsAreNull,
+                "Image urls are null"
+            )
+        );
     }
 
     public async Task<UpdateResult?> SetMainPhotoAsync(string userId, string photoUrlIn, CancellationToken cancellationToken)
@@ -105,9 +152,18 @@ public class UserRepository : IUserRepository
         #endregion
     }
 
-    public async Task<UpdateResult?> DeletePhotoAsync(string userId, string? url_165_In, CancellationToken cancellationToken)
+    public async Task<OperationResult<UpdateResult>> DeletePhotoAsync(string userId, string? url_165_In, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(url_165_In)) return null;
+        if (string.IsNullOrEmpty(url_165_In))
+        {
+            return new OperationResult<UpdateResult>(
+                IsSuccess: false,
+                Error: new CustomError(
+                    ErrorCode.InvalidUrl,
+                    "URL cannot be null or empty"
+                )
+            );
+        }
 
         // Find the photo in AppUser
         Photo photo = await _collection.AsQueryable()
@@ -116,21 +172,51 @@ public class UserRepository : IUserRepository
             .Where(photo => photo.Url_165 == url_165_In) // filter by photo url
             .FirstOrDefaultAsync(cancellationToken); // return the photo or null
 
-        if (photo is null) return null; // Warning: should be handled with Exception handling Middlewear to log the app's bug since it's a bug!
+        if (photo is null)
+        {
+            return new OperationResult<Photo>(
+                IsSuccess: false,
+                Error: new CustomError(
+                    ErrorCode.IsNotFound,
+                    "Photo not found"
+                )
+            );
+        } // Warning: should be handled with Exception handling Middlewear to log the app's bug since it's a bug!
 
-        if (photo.IsMain) return null; // prevent from deleting main photo!
+        if (photo.IsMain)
+        {
+            return new OperationResult<Photo>(
+                IsSuccess: false,
+                Error: new CustomError(
+                    ErrorCode.InvalidOperation,
+                    "Cannot delete main photo"
+                )
+            );
+        } // prevent from deleting main photo!
 
         bool isDeleteSuccess = await _photoService.DeletePhotoFromDisk(photo);
         if (!isDeleteSuccess)
         {
-            _logger.LogError("Delete Photo form disk failed");
+            _logger.LogError("Delete Photo form disk failed for photoId: {PhotoId}", photo.Id);
 
-            return null;
+            return new OperationResult<bool>(
+                IsSuccess: false,
+                Error: new CustomError(
+                    ErrorCode.FileSystemError,
+                    "Could not delete photo file from storage"
+                )
+            );
         }
 
         UpdateDefinition<AppUser> update = Builders<AppUser>.Update
-            .PullFilter(appUser => appUser.Photos, photo => photo.Url_165 == url_165_In);
+        .PullFilter(appUser => appUser.Photos, photo => photo.Url_165 == url_165_In);
 
-        return await _collection.UpdateOneAsync<AppUser>(appUser => appUser.Id.ToString() == userId, update, null, cancellationToken);
+        UpdateResult updateResult = await _collection.UpdateOneAsync<AppUser>(appUser => appUser.Id.ToString() == userId, update, null, cancellationToken);
+
+        return new OperationResult<UpdateResult>(
+            IsSuccess: true,
+            ReadResult: updateResult,
+            null
+        );
     }
 }

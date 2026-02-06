@@ -20,11 +20,15 @@ public class UserController(IUserRepository userRepository) : BaseApiController
 
         UpdateResult result = await userRepository.UpdateByIdAsync(userId, userInput, cancellationToken);
 
-        return result is null || result.ModifiedCount == 0
-            ? BadRequest("Update failed, Try again later.")
-            : Ok(new Response(
-                Message: "User has been updated successfully."
-            ));
+        return opResult.IsSuccess == true
+        ? opResult.Result
+        : opResult.Error?.Code switch
+        {
+            ErrorCode.IsNotFound => BadRequest(opResult.Error.Message),
+            ErrorCode.IsTokenFailed => BadRequest(opResult.Error.Message),
+            ErrorCode.UpdateFailed => BadRequest(opResult.Error.Message),
+            _ => BadRequest("Operation failed! Try again or contact support.")
+        };
     }
 
     [HttpPost("add-photo")]
@@ -76,10 +80,15 @@ public class UserController(IUserRepository userRepository) : BaseApiController
 
         UpdateResult? updateResult = await userRepository.DeletePhotoAsync(userId, photoUrlIn, cancellationToken);
 
-        return updateResult is null || !updateResult.IsModifiedCountAvailable
-            ? BadRequest("Photo deletion failed. Try again in a few moments. If the issue persists contact the admin.")
-            : Ok(new Response(
-                Message: "Photo deleted successfully."
-            ));
+        return opResult.IsSuccess == true
+        ? opResult.Result
+        : opResult.Error?.Code switch
+        {
+            ErrorCode.InvalidUrl => BadRequest(opResult.Error.Message),
+            ErrorCode.IsNotFound => BadRequest(opResult.Error.Message),
+            ErrorCode.InvalidOperation => BadRequest(opResult.Error.Message),
+            ErrorCode.FileSystemError => BadRequest(opResult.Error.Message),
+            _ => BadRequest("Operation failed! Try again or contact support.")
+        };
     }
 }

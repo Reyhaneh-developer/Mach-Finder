@@ -39,7 +39,7 @@ public class AccountRepository : IAccountRepository
                 IsSuccess: false,
                 Error: new CustomError(
                     ErrorCode.NetIdentityFailed,
-                    "User creation failed!"
+                    Message: roleResult.Errors.Select(e => e.Description).FirstOrDefault()
                 )
            );
         }
@@ -56,7 +56,7 @@ public class AccountRepository : IAccountRepository
                 IsSuccess: false,
                 Error: new CustomError(
                     ErrorCode.NetIdentityRoleFailed,
-                    "Add role to user failed!"
+                    Message: roleResult.Errors.Select(e => e.Description).FirstOrDefault()
                 )
             );
         }
@@ -93,7 +93,7 @@ public class AccountRepository : IAccountRepository
             return new OperationResult<LoggedInDto>(
               IsSuccess:false,
               Error: new CustomError(
-                ErrorCode.IsNotFound,
+                ErrorCode.IsWrongCreds,
                 ""
               )
              );
@@ -143,14 +143,14 @@ public class AccountRepository : IAccountRepository
 
         if (appUser is null)
         {
-r           return new OperationResult<DeleteResult>(
-              IsSuccess:false,
-              Error: new CustomError(
-                ErrorCode.IsNotFound,
-                ""
-              )
-              );       
-              }
+         return new OperationResult<DeleteResult>(
+                IsSuccess: false,
+                Error: new CustomError(
+                    ErrorCode.IsNotFound,
+                    ""
+                )
+            );  
+        }
 
         DeleteResult deleteResult =await _collection.DeleteOneAsync<AppUser>(doc => doc.Id.ToString() == userId, cancellationToken);
        
@@ -158,7 +158,7 @@ r           return new OperationResult<DeleteResult>(
             IsSuccess:true,
             result:deleteResult,
             null
-        )
+        );
     }
 
     public async Task<OperationResult<LoggedInDto>> ReloadLoggedInUserAsync(string userId, string token, CancellationToken cancellationToken)
@@ -166,13 +166,17 @@ r           return new OperationResult<DeleteResult>(
         AppUser? appUser = await _collection.Find<AppUser>(doc => doc.Id.ToString() == userId).FirstOrDefaultAsync(cancellationToken);
 
         if (appUser is null)
+        {
+    
          return new OperationResult<DeleteResult>(
               IsSuccess:false,
               Error: new CustomError(
                 ErrorCode.IsNotFound,
                 ""
               )
+              
              );
+        }
         
          LoggedInDto loggedInDto =Mappers.ConvertAppUserToLoggedInDto(appUser, token);
 

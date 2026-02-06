@@ -40,7 +40,7 @@ public class AccountController(IAccountRepository accountRepository) : BaseApiCo
         ? opResult.Result
         : opResult.Error?.Code switch
         {
-            ErrorCode.IsNotFound => BadRequest(opResult.Error.Message),
+            ErrorCode.IsWrongCreds => BadRequest(opResult.Error.Message),
             ErrorCode.IsWrongCreds => BadRequest(opResult.Error.Message),
             ErrorCode.IsTokenFailed => BadRequest(opResult.Error.Message),
             _ => BadRequest("Operation failed! Try again or contact support.")
@@ -58,11 +58,9 @@ public class AccountController(IAccountRepository accountRepository) : BaseApiCo
 
        return opResult.IsSuccess == true
         ? opResult.Result
-        : opResult.Error?.Code switch
-        {
-            ErrorCode.IsNotFound => BadRequest(opResult.Error.Message),
-            _ => BadRequest("Operation failed! Try again or contact support.")
-        };
+            : opResult.Error?.Code == ErrorCode.IsNotFound
+        ? BadRequest(opResult.Error.Message)
+        : BadRequest("Operation failed! Try again or contact support.");
     }
 
     [Authorize]
@@ -93,8 +91,12 @@ public class AccountController(IAccountRepository accountRepository) : BaseApiCo
 
         // return loggedInDto is null ? Unauthorized("User is logged out or unauthorized. Login again") : loggedInDto;
 
-        ErrorCode.IsNotFound => BadRequest(opResult.Error.Message),
-            _ => BadRequest("Operation failed! Try again or contact support.")
+        return opResult.IsSuccess == true
+        ? opResult.Result
+            : opResult.Error?.Code == ErrorCode.IsNotFound
+        ? BadRequest(opResult.Error.Message)
+        : BadRequest("Operation failed! Try again or contact support.");
+
     }
 
     [HttpGet("get-http")]
