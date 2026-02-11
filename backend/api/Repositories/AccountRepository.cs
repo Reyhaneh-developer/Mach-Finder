@@ -146,13 +146,13 @@ public class AccountRepository : IAccountRepository
          return new OperationResult<DeleteResult>(
                 IsSuccess: false,
                 Error: new CustomError(
-                    ErrorCode.IsNotFound,
+                    ErrorCode.IsWrongCreds,
                     ""
                 )
             );  
         }
 
-        DeleteResult deleteResult =await _collection.DeleteOneAsync<AppUser>(doc => doc.Id.ToString() == userId, cancellationToken);
+        DeleteResult deleteResult = await _collection.DeleteOneAsync<AppUser>(doc => doc.Id.ToString() == userId, cancellationToken);
        
         return new OperationResult<DeleteResult>(
             IsSuccess:true,
@@ -171,7 +171,7 @@ public class AccountRepository : IAccountRepository
          return new OperationResult<DeleteResult>(
               IsSuccess:false,
               Error: new CustomError(
-                ErrorCode.IsNotFound,
+                ErrorCode.IsWrongCreds,
                 ""
               )
               

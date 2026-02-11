@@ -1,8 +1,3 @@
-using api.Enums;
-using api.Extensions;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
-
 namespace api.Controllers;
 
 public class AccountController(IAccountRepository accountRepository) : BaseApiController

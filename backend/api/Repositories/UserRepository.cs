@@ -26,7 +26,7 @@ public class UserRepository : IUserRepository
             return new OperationResult<DeleteResult>(
                          IsSuccess: false,
                          Error: new CustomError(
-                           ErrorCode.IsNotFound,
+                           ErrorCode.IsWrongCreds,
                            ""
                          )
 
@@ -56,7 +56,6 @@ public class UserRepository : IUserRepository
     {
         AppUser? appUser = await GetByIdAsync(userId, cancellationToken);
 
-
         if (appUser is null)
             return new OperationResult<Photo>(
                          IsSuccess: false,
@@ -76,7 +75,6 @@ public class UserRepository : IUserRepository
                 ErrorCode.IsTokenFailed,
                 ""
               )
-
              );
 
         string[]? imageUrls = await _photoService.AddPhotoToDiskAsync(file, objectId);
